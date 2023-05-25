@@ -384,7 +384,7 @@ public class ClientApp extends JFrame {
                 }
             }
         });
-        
+        /*
 
      // Bouton pour afficher le détail d'une spécification (format HTML)
         JButton specificationHTMLButton = new JButton("Détail d'une spécification (HTML)");
@@ -404,6 +404,46 @@ public class ClientApp extends JFrame {
                     responsePanel.revalidate();
                     responsePanel.repaint();
                 }
+                else {
+                	String url = urlField.getText();
+
+                    int port = Integer.parseInt(portField.getText());
+                	
+                	String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/error";
+                    
+
+
+                    String response = sendGETRequest(serviceURL);
+
+
+                    responseArea.setText(response);
+                }
+            }
+        });
+        */
+        JButton specificationHTMLButton = new JButton("Détail d'une spécification (HTML)");
+        
+        specificationHTMLButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String specId = JOptionPane.showInputDialog(ClientApp.this, "Entrez l'ID de la spécification :");
+                String htmlContent;
+
+                if (specId != null && !specId.isEmpty()) {
+                    htmlContent = getSpecificationHTML(specId);
+                } else {
+                    // Gérer le cas où specId est nul ou vide
+                    htmlContent = "Erreur : spécification ID vide ou invalide.";
+                }
+
+                JEditorPane editorPane = new JEditorPane("text/html", htmlContent);
+                editorPane.setEditable(false);
+
+                JScrollPane scrollPane = new JScrollPane(editorPane);
+                responsePanel.removeAll();
+                responsePanel.add(scrollPane, BorderLayout.CENTER);
+                responsePanel.revalidate();
+                responsePanel.repaint();
             }
         });
 
@@ -748,7 +788,24 @@ public class ClientApp extends JFrame {
             return "Erreur lors de la récupération du détail de la spécification (format HTML).";
         }
     }
+    private boolean checkSpecIdExists(String id) {
+        String url = urlField.getText();
+        int port = Integer.parseInt(portField.getText());
+        String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/html/stb_details?id=" + id;
 
+        try {
+            // Charger le contenu HTML de la page
+            Document document = Jsoup.connect(serviceURL).get();
+
+            // Rechercher l'élément avec l'ID spécifié
+            Element idElement = document.selectFirst("td:contains(" + id + ")");
+
+            // Vérifier si l'élément avec l'ID spécifié existe
+            return idElement != null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false; }
+        }
 
 
     // Méthode pour récupérer le détail d'une spécification au format XML
@@ -782,21 +839,37 @@ public class ClientApp extends JFrame {
     }
 
     // Méthode pour récupérer le détail d'une spécification au format HTML
-   private String getSpecificationHTML(String id) {
-        try {
-            String url = urlField.getText();
-            int port = Integer.parseInt(portField.getText());
-            String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/html/stb_details?id=" + id;
+    private String getSpecificationHTML(String id) {
+        String url = urlField.getText();
+        int port = Integer.parseInt(portField.getText());
+        String serviceURL;
 
-            // Utiliser la méthode loadHTMLPage pour récupérer le contenu HTML
-            String htmlResponse = loadHTMLPage(serviceURL);
-
-            return htmlResponse;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "Erreur lors de la récupération du détail de la spécification (format HTML).";
+        if (checkSpecIdExists(id)) {
+            serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/html/stb_details?id=" + id;
+        } else {
+            serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/html/error?id=" + id;
         }
-    }  
+
+        // Utiliser la méthode loadHTMLPage pour récupérer le contenu HTML
+        String htmlResponse = loadHTMLPage(serviceURL);
+
+        return htmlResponse;
+    }
+   private String getSpecificationHTMLerror(String id) {
+       try {
+           String url = urlField.getText();
+           int port = Integer.parseInt(portField.getText());
+           String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/html/error?id=" + id;
+
+           // Utiliser la méthode loadHTMLPage pour récupérer le contenu HTML
+           String htmlResponse = loadHTMLPage(serviceURL);
+
+           return htmlResponse;
+       } catch (Exception e) {
+           e.printStackTrace();
+           return "Erreur lors de la récupération du détail de la spécification (format HTML).";
+       }
+   }
     
    
     
