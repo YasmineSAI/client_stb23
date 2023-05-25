@@ -2,11 +2,16 @@ package fr.univrouen.Client;
 
 
 
-import javax.lang.model.element.Element;
+//import javax.lang.model.element.Element;
 import javax.swing.*;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.xml.sax.InputSource;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+
+import org.jsoup.select.Elements;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -153,7 +158,7 @@ public class ClientApp extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 String url = urlField.getText();
                 int port = Integer.parseInt(portField.getText());
-                String serviceURL = "http://" + url + ":" + port + "/help";
+                String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/help";
 
                 String htmlResponse = loadHTMLPage(serviceURL);
 
@@ -183,16 +188,20 @@ public class ClientApp extends JFrame {
      // Bouton pour afficher la liste des STB (format HTML)
         JButton stbListHTMLButton = new JButton("Liste des STB (HTML)");
         stbListHTMLButton.addActionListener(new ActionListener() {
-    	    @Override
-    	    public void actionPerformed(ActionEvent e) {
-    	    	String url = urlField.getText();
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String url = urlField.getText();
                 int port = Integer.parseInt(portField.getText());
-                String serviceURL = "http://" + url + ":" + port + "/stb23/resume/";
+                String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/resume/";
 
                 String htmlResponse = loadHTMLPage(serviceURL);
-    	        
 
-    	        JEditorPane editorPane = new JEditorPane("text/html", htmlResponse);
+                // Utiliser JSoup pour extraire le corps de la page HTML
+                Document doc = Jsoup.parse(htmlResponse);
+                Element body = doc.body();
+                String htmlBody = body.html();
+
+                JEditorPane editorPane = new JEditorPane("text/html", htmlBody);
                 editorPane.setEditable(false);
 
                 JScrollPane scrollPane = new JScrollPane(editorPane);
@@ -200,8 +209,9 @@ public class ClientApp extends JFrame {
                 responsePanel.add(scrollPane, BorderLayout.CENTER);
                 responsePanel.revalidate();
                 responsePanel.repaint();
-    	    }
-    	});
+            }
+        });
+
         
         
        
@@ -218,7 +228,7 @@ public class ClientApp extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 String url = urlField.getText();
                 int port = Integer.parseInt(portField.getText());
-                String serviceURL = "http://" + url + ":" + port + "/";
+                String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/";
 
                 String htmlResponse = loadHTMLPage(serviceURL);
 
@@ -266,7 +276,7 @@ public class ClientApp extends JFrame {
                 String xmlData = xmlField.getText();
 
                 if (!xmlData.isEmpty()) {
-                    String serviceURL = "http://" + url + ":" + port + "/stb23/insert";
+                    String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/insert";
                     HttpClient httpClient = HttpClients.createDefault();
 
                 	HttpPost httpPost = new HttpPost(serviceURL);
@@ -340,7 +350,7 @@ public class ClientApp extends JFrame {
 
                 if (specId != null && !specId.isEmpty()) {
 
-                    String serviceURL = "http://" + url + ":" + port + "/stb23/delete/" + specId;
+                    String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/delete/" + specId;
 
                     String response = sendDELETERequest(serviceURL);
 
@@ -352,93 +362,7 @@ public class ClientApp extends JFrame {
             }
 
         });
-        /*
-
-
-        // Bouton pour envoyer un article via saisie directe
-
-       JButton sendDirectButton = new JButton("Envoyer directement");
-
-        sendDirectButton.addActionListener(new ActionListener() {
-
-            @Override
-
-            public void actionPerformed(ActionEvent e) {
-
-                String url = urlField.getText();
-
-                int port = Integer.parseInt(portField.getText());
-
-                String article = JOptionPane.showInputDialog(ClientApp.this, "Entrez l'article :");
-
-
-                if (article != null && !article.isEmpty()) {
-
-                    // Effectue la connexion au service REST avec les paramètres fournis par l'utilisateur
-
-                    String serviceURL = "http://" + url + ":" + port + "/api/service";
-
-                    String response = sendArticle(serviceURL, article);
-
-
-                    // Affiche les informations retournées par le service REST
-
-                    responseArea.setText(response);
-
-                }
-
-            }
-
-        });
-
-
-        // Bouton pour envoyer un article via sélection d'un fichier XML local
-
-        JButton sendFileButton = new JButton("Envoyer depuis un fichier");
-
-        sendFileButton.addActionListener(new ActionListener() {
-
-            @Override
-
-            public void actionPerformed(ActionEvent e) {
-
-                String url = urlField.getText();
-
-                int port = Integer.parseInt(portField.getText());
-
-                JFileChooser fileChooser = new JFileChooser();
-
-                int result = fileChooser.showOpenDialog(ClientApp.this);
-
-
-                if (result == JFileChooser.APPROVE_OPTION) {
-
-                    File file = fileChooser.getSelectedFile();
-
-                    String article = readXMLFile(file);
-
-
-                    if (article != null && !article.isEmpty()) {
-
-                        // Effectue la connexion au service REST avec les paramètres fournis par l'utilisateur
-
-                        String serviceURL = "http://" + url + ":" + port + "/api/service";
-
-                        String response = sendArticle(serviceURL, article);
-
-
-                        // Affiche les informations retournées par le service REST
-
-                        responseArea.setText(response);
-
-                    }
-
-                }
-
-            }
-
-        }); 
-        */
+       
         
      // Bouton pour afficher le détail d'une spécification (format XML)
         JButton specificationXMLButton = new JButton("Détail d'une spécification (XML)");
@@ -593,40 +517,9 @@ public class ClientApp extends JFrame {
     }
 
 
-    private String generateSTBXML(String stbName) {
-        StringBuilder xmlBuilder = new StringBuilder();
+    
 
-        // Construire le flux XML avec les informations de la STB
-        xmlBuilder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        xmlBuilder.append("<stb23>\n");
-        xmlBuilder.append("  <titre>").append(stbName).append("</titre>\n");
-        xmlBuilder.append("  <version>1.0</version>\n");
-        //xmlBuilder.append("  <date>").append(getCurrentDate()).append("</date>\n");
-        xmlBuilder.append("</stb23>");
-
-        return xmlBuilder.toString();
-    }
-    private String extractDetailFromXML(String xmlResponse) {
-        try {
-            Document document = Jsoup.parse(xmlResponse);
-            org.jsoup.nodes.Element detailElement = document.selectFirst("detail");
-
-            if (detailElement != null) {
-                return detailElement.text();
-            } else {
-                return null;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-  /*  private String getCurrentDate() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        Date currentDate = new Date();
-        return dateFormat.format(currentDate);
-    } */
+ 
 
 
 
@@ -726,50 +619,7 @@ public class ClientApp extends JFrame {
     }
 
 
-    /*
-    private String sendPOSTRequest(String serviceURL, String xmlData) {
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpPost httpPost = new HttpPost(serviceURL);
-
-        try {
-            // Définir les en-têtes et le corps de la requête POST
-            httpPost.setHeader("Content-Type", "application/xml");
-            httpPost.setEntity(new StringEntity(xmlData));
-
-            // Exécuter la requête POST
-            CloseableHttpResponse response = httpClient.execute(httpPost);
-
-            // Obtenir la réponse du serveur
-            HttpEntity entity = response.getEntity();
-            String responseString = EntityUtils.toString(entity, "UTF-8");
-
-            // Consommer l'entité de la réponse pour libérer les ressources
-            EntityUtils.consume(entity);
-
-            return responseString;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        } finally {
-            // Fermer le client HTTP et la réponse
-            try {
-                httpClient.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private int getResponseStatusCodee(String response) {
-        try {
-            URL url = new URL(response);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            return connection.getResponseCode();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return -1;
-        } 
-    } */
+  
     private String sendPOSTRequest(String serviceURL, File xmlFile) {
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(serviceURL);
@@ -853,10 +703,8 @@ public class ClientApp extends JFrame {
         try {
             String url = urlField.getText();
             int port = Integer.parseInt(portField.getText());
-            String serviceURL = "http://" + url + ":" + port + "/stb23/resume/xml";
-            String xmlResponse = loadXMLPage(serviceURL);
-
-            return xmlResponse;
+            String serviceURL = "http://" + url + ".cleverapps.io:"+ port + "/stb23/resume/xml";
+            return sendGETRequest(serviceURL);
         } catch (Exception e) {
             e.printStackTrace();
             return "Erreur lors de la récupération de la liste des STB (format XML).";
@@ -864,11 +712,11 @@ public class ClientApp extends JFrame {
     }
 
     // Méthode pour récupérer la liste des STB au format HTML
-    private String getSTBListHTML() {
+   /* private String getSTBListHTML() {
     	try {
             String url = urlField.getText();
             int port = Integer.parseInt(portField.getText());
-            String serviceURL = "http://" + url + ":" + port + "/stb23/resume";
+            String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/resume";
 
             // Utiliser la méthode loadHTMLPage pour récupérer le contenu HTML
             String htmlResponse = loadHTMLPage(serviceURL);
@@ -878,7 +726,29 @@ public class ClientApp extends JFrame {
             e.printStackTrace();
             return "Erreur lors de la récupération du détail de la spécification (format HTML).";
         }
+    } */
+    
+    private String getSTBListHTML() {
+        try {
+            String url = urlField.getText();
+            int port = Integer.parseInt(portField.getText());
+            String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/resume";
+
+            // Utiliser la méthode loadHTMLPage pour récupérer le contenu HTML
+            String htmlResponse = loadHTMLPage(serviceURL);
+
+            // Utiliser JSoup pour extraire le corps de la page HTML
+            Document doc = Jsoup.parse(htmlResponse);
+            Element body = doc.body();
+            String htmlBody = body.html();
+
+            return htmlBody;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Erreur lors de la récupération du détail de la spécification (format HTML).";
+        }
     }
+
 
 
     // Méthode pour récupérer le détail d'une spécification au format XML
@@ -886,7 +756,7 @@ public class ClientApp extends JFrame {
         try {
             String url = urlField.getText();
             int port = Integer.parseInt(portField.getText());
-            String serviceURL = "http://" + url + ":" + port + "/stb23/xml/" + id;
+            String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/xml/" + id;
             String xmlResponse = loadXMLPage(serviceURL);
 
             return xmlResponse;
@@ -912,11 +782,11 @@ public class ClientApp extends JFrame {
     }
 
     // Méthode pour récupérer le détail d'une spécification au format HTML
-    private String getSpecificationHTML(String id) {
+   private String getSpecificationHTML(String id) {
         try {
             String url = urlField.getText();
             int port = Integer.parseInt(portField.getText());
-            String serviceURL = "http://" + url + ":" + port + "/stb23/html/stb_details?id=" + id;
+            String serviceURL = "http://" + url + ".cleverapps.io:" + port + "/stb23/html/stb_details?id=" + id;
 
             // Utiliser la méthode loadHTMLPage pour récupérer le contenu HTML
             String htmlResponse = loadHTMLPage(serviceURL);
@@ -926,7 +796,12 @@ public class ClientApp extends JFrame {
             e.printStackTrace();
             return "Erreur lors de la récupération du détail de la spécification (format HTML).";
         }
-    }
+    }  
+    
+   
+    
+    
+    
 
 
     private String loadHTMLPage(String serviceURL) {
