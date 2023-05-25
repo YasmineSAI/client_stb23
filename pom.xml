@@ -96,6 +96,10 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+								 <configuration>
+                    <mainClass>fr.univrouen.Client.ClientApplication</mainClass>
+                </configuration>
+
 			</plugin>
 			
 		</plugins>
